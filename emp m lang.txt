@@ -1,0 +1,19 @@
+let
+    Source = Excel.Workbook(File.Contents("F:\EmployeeData.xlsx"), null, true),
+    EmployeeData1_Sheet = Source{[Item="EmployeeData1",Kind="Sheet"]}[Data],
+    #"Promoted Headers" = Table.PromoteHeaders(EmployeeData1_Sheet, [PromoteAllScalars=true]),
+    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"EmployeeID", Int64.Type}, {"NationalIDNumber", Int64.Type}, {"ContactID", Int64.Type}, {"LoginID", type text}, {"ManagerID", Int64.Type}, {"Title", type text}, {"BirthDate", type datetime}, {"MaritalStatus", type text}, {"Gender", type text}, {"HireDate", type datetime}, {"Dept", type text}, {"Salary", Int64.Type}, {"Job Grade", type text}, {"CurrentFlag", Int64.Type}, {"rowguid", type text}}),
+    #"Removed NationalIDNumber" = Table.RemoveColumns(#"Changed Type",{"NationalIDNumber"}),
+    #"Changed BirthDate type to date" = Table.TransformColumnTypes(#"Removed NationalIDNumber",{{"BirthDate", type date}}),
+    #"Replaced M to Married" = Table.ReplaceValue(#"Changed BirthDate type to date","M","Married",Replacer.ReplaceText,{"MaritalStatus"}),
+    #"Replaced S to Single" = Table.ReplaceValue(#"Replaced M to Married","S","Single",Replacer.ReplaceText,{"MaritalStatus"}),
+    #"Replaced M to Male" = Table.ReplaceValue(#"Replaced S to Single","M","Male",Replacer.ReplaceText,{"Gender"}),
+    #"Replaced F to Female" = Table.ReplaceValue(#"Replaced M to Male","F","Female",Replacer.ReplaceText,{"Gender"}),
+    #"Changed HireDate type to date" = Table.TransformColumnTypes(#"Replaced F to Female",{{"HireDate", type date}}),
+    #"Removed Columns" = Table.RemoveColumns(#"Changed HireDate type to date",{"CurrentFlag"}),
+    #"Merged Dept & Job Grade" = Table.CombineColumns(#"Removed Columns",{"Dept", "Job Grade"},Combiner.CombineTextByDelimiter("---->", QuoteStyle.None),"Dept --> Job Grade"),
+    #"Removed guid" = Table.RemoveColumns(#"Merged Dept & Job Grade",{"rowguid"}),
+    #"Renamed Title to Full Name" = Table.RenameColumns(#"Removed guid",{{"Title", "Full Name"}}),
+    #"Removed CantactID" = Table.RemoveColumns(#"Renamed Title to Full Name",{"ContactID", "LoginID"})
+in
+    #"Removed CantactID"
